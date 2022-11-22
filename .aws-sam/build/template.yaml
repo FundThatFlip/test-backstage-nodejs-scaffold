@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Next.js React app hosted on Amplify
+
+  '
+Parameters:
+  Namespace:
+    Description: Namespace used as suffix for stack resources
+    Type: String
+  PageName:
+    Description: Name of single page app
+    Type: String
+  AmplifyFrontendRepository:
+    Type: String
+    Description: 'Amplify Frontend Repository in the format: https://<GitProviderDomain>/<user>/<repository>'
+    Default: https://github.com/FundThatFlip/shell-spa-template
+Resources:
+  AmplifyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - amplify.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AdministratorAccess-Amplify
+  AmplifySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      GenerateSecretString:
+        GenerateStringKey: password
+        SecretStringTemplate: '{"username":"username"}'
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  AmplifyApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Name:
+        Fn::Sub: ${PageName}-${Namespace}
+      Description: Matching Tool
+      EnvironmentVariables:
+      - Name: FTF_PAT
+        Value: '{{resolve:secretsmanager:aws-amplify-ftf-pat:SecretString:token::}}'
+      AutoBranchCreationConfig:
+        AutoBranchCreationPatterns:
+        - feature*/
+        BasicAuthConfig:
+          EnableBasicAuth: true
+          Password:
+            Fn::Join:
+            - ''
+            - - '{{resolve:secretsmanager:'
+              - Ref: AmplifySecret
+              - :SecretString:password::}}
+          Username: ftfuser
+        EnableAutoBranchCreation: true
+        EnableAutoBuild: true
+        EnablePullRequestPreview: true
+      BasicAuthConfig:
+        EnableBasicAuth: false
+      BuildSpec: "version: \"1.0\"    \nfrontend:\n  phases:\n    preBuild:\n    \
+        \  commands:\n        - yarn\n    build:\n      commands:\n        - yarn\
+        \ build\n  artifacts:\n    baseDirectory: .next\n    files:\n      - \"**/*\"\
+        \n  cache:\n    paths:\n      - node_modules/**/*\n"
+      EnableBranchAutoDeletion: true
+      CustomRules:
+      - Source: </^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|ttf)$)([^.]+$)/>
+        Target: /index.html
+        Status: '200'
+      - Source: /<*>
+        Target: /index.html
+        Status: '404'
+      Repository:
+        Ref: AmplifyFrontendRepository
+      AccessToken: '{{resolve:secretsmanager:aws-amplify-github:SecretString:token::}}'
+      IAMServiceRole:
+        Fn::GetAtt:
+        - AmplifyRole
+        - Arn
+  MainBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      AppId:
+        Fn::GetAtt:
+        - AmplifyApp
+        - AppId
+      BranchName: main
+      Description: Main Branch
+      EnableAutoBuild: true
+      EnablePullRequestPreview: true

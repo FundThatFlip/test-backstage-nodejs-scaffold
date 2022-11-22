@@ -1,0 +1,8 @@
+name: Validate repository
+on: [push]
+jobs:
+  build:
+    name: Run validation
+    uses: FundThatFlip/github-actions/.github/workflows/basic-validation.yml@feat-basic-validation
+    secrets:
+      GH_ACTIONS_PAT: ${{ secrets.FTF_GHA_BOT_PAT }}

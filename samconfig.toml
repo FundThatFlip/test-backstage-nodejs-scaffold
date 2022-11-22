@@ -1,0 +1,13 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "shell-spa-template"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1kikcvy7wru1c"
+s3_prefix = "shell-spa-template"
+region = "us-east-1"
+profile = "bruno.henrique"
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+parameter_overrides = "Namespace=\"Shell SPA\" PageName=\"TODO Module\" AmplifyFrontendRepository=\"https://github.com/FundThatFlip/shell-spa-template\""
+image_repositories = []
